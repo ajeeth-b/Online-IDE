@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Fuckin Working IDE</title>
+<style type="text/css" media="screen">
+    .container {
+      width: 100%;
+    }
+
+    .left, .right {
+      float: left;
+      width: 50%;
+      border: 1px solid white;
+      box-sizing: border-box;
+      height: 100%;
+    }
+
+    .top, .bottom{
+        height: 50%;
+    }
+
+    #editor { 
+        position: absolute;
+        font-size: 15px;
+        width: 50%;
+        top: 30px;
+        right: 0;
+        bottom: 0;
+        left: 0;
+    }
+</style>
+</head>
+<body>
+
+<div>
+    <select id="theme-list" onchange="on_theme_change()">
+        <optgroup label="Bright">
+            <option value="ace/theme/chrome">Chrome</option>
+            <option value="ace/theme/clouds">Clouds</option>
+            <option value="ace/theme/crimson_editor">Crimson Editor</option>
+            <option value="ace/theme/dawn">Dawn</option>
+            <option value="ace/theme/dreamweaver">Dreamweaver</option>
+            <option value="ace/theme/eclipse">Eclipse</option>
+            <option value="ace/theme/github">GitHub</option>
+            <option value="ace/theme/iplastic">IPlastic</option>
+            <option value="ace/theme/solarized_light">Solarized Light</option>
+            <option value="ace/theme/textmate">TextMate</option>
+            <option value="ace/theme/tomorrow">Tomorrow</option>
+            <option value="ace/theme/xcode">Xcode</option>
+            <option value="ace/theme/kuroir">Kuroir</option>
+            <option value="ace/theme/katzenmilch">KatzenMilch</option>
+            <option value="ace/theme/sqlserver">SQL Server</option>
+        </optgroup>
+        <optgroup label="Dark">
+            <option value="ace/theme/ambiance">Ambiance</option>
+            <option value="ace/theme/chaos">Chaos</option>
+            <option value="ace/theme/clouds_midnight">Clouds Midnight</option>
+            <option value="ace/theme/dracula">Dracula</option>
+            <option value="ace/theme/cobalt" selected>Cobalt</option>
+            <option value="ace/theme/gruvbox">Gruvbox</option>
+            <option value="ace/theme/gob">Green on Black</option>
+            <option value="ace/theme/idle_fingers">idle Fingers</option>
+            <option value="ace/theme/kr_theme">krTheme</option>
+            <option value="ace/theme/merbivore">Merbivore</option>
+            <option value="ace/theme/merbivore_soft">Merbivore Soft</option>
+            <option value="ace/theme/mono_industrial">Mono Industrial</option>
+            <option value="ace/theme/monokai">Monokai</option>
+            <option value="ace/theme/nord_dark">Nord Dark</option>
+            <option value="ace/theme/pastel_on_dark">Pastel on dark</option>
+            <option value="ace/theme/solarized_dark">Solarized Dark</option>
+            <option value="ace/theme/terminal">Terminal</option>
+            <option value="ace/theme/tomorrow_night">Tomorrow Night</option>
+            <option value="ace/theme/tomorrow_night_blue">Tomorrow Night Blue</option>
+            <option value="ace/theme/tomorrow_night_bright">Tomorrow Night Bright</option>
+            <option value="ace/theme/tomorrow_night_eighties">Tomorrow Night 80s</option>
+            <option value="ace/theme/twilight">Twilight</option>
+            <option value="ace/theme/vibrant_ink">Vibrant Ink</option>
+        </optgroup>
+    </select>
+    <select id="language-mode" onchange="on_language_change()">
+        <option value="ace/mode/c_cpp">C</option>
+        <option value="ace/mode/python" selected="selected">Python3</option>
+        </select>
+
+
+    <button type="button" onclick="run()">Run</button>
+    <script type="text/javascript">
+
+        function req(url, method, data_function, data){
+            let xhr = new XMLHttpRequest();
+            xhr.open(method, url, true);
+            xhr.setRequestHeader("Content-Type", "application/json");
+            xhr.onreadystatechange = function (){
+                if (xhr.readyState === 4 && xhr.status === 200){
+                    let json = JSON.parse(xhr.responseText);
+                    data_function(json);
+                }
+                else{
+                    console.log('Error '+url);
+                }
+            }
+            xhr.send(data);
+        }
+
+        function handle_respose(data){
+            output = document.getElementById('output');
+            if (data.status == 'success'){
+                console.log(data.stdout);
+                if (data.stdout == null){
+                    data.stdout = 'No stdout to show';
+                }
+                output.innerHTML = '<span style="white-space: pre-line">'+data.stdout+'</span>';
+            }
+            else if (data.status == 'compilation error') {
+                console.log('Compilation Error');
+                console.log(data.stdout, data.stderr);
+                if (data.stdout == null){
+                    data.stdout = '';
+                }
+                innerhtml = "<b>Compilation Error</b><br>" + '<span style="white-space: pre-line">'+ data.stdout + '<br><br>' + data.stderr; +'</span>'
+                output.innerHTML = innerhtml;
+            }
+            else if (data.status == 'runtime error') {
+                console.log('Runtime error');
+                console.log(data.stdout, data.stderr);
+                if (data.stdout == null){
+                    data.stdout = '';
+                }
+                innerhtml = "<b>Runtime Error</b><br>" + '<span style="white-space: pre-line">'+ data.stdout + '<br><br>' + data.stderr + '</span>';
+                output.innerHTML = innerhtml;
+            }
+            else if (data.status == 'internal error') {
+                console.log('Internal Error');
+                output.innerHTML = 'Internal Error';
+            }
+        }
+
+        function run(){
+            code = editor.getValue();
+            inputs = document.getElementById('input').value;
+            language = document.getElementById("language-mode");
+            language = language.options[language.selectedIndex].text.toLowerCase();
+
+            url = 'http://ec2-15-207-71-189.ap-south-1.compute.amazonaws.com:8081/';
+            // url = 'http://127.0.0.1:5000/';
+            url = url+language;
+            data = JSON.stringify({'code':code, 'input':inputs});
+
+            req(url, 'POST', handle_respose, data);
+        }
+
+    </script>
+
+    <div class="container">
+        <div class="left">
+            <div id="editor">print("Hello world!")</div>
+        </div>
+        <div class="right">
+
+            <div class="top">
+                <h3>Output</h3>
+                <p id="output" style="height: 35vh; width: 46vw"></p>
+            </div>
+            <div class="bottom">
+                <h3>Input</h3>
+                <textarea id="input" style="height: 35vh; width: 46vw"></textarea>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js" integrity="sha512-GZ1RIgZaSc8rnco/8CXfRdCpDxRCphenIiZ2ztLy3XQfCbQUSCuk8IudvNHxkRA3oUg6q0qejgN/qqyG1duv5Q==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.9/ext-language_tools.js" integrity="sha512-9lk+2pKvVUQ2dPHEvCe/xIcJ6Gr0k3H01vFzmBfhnYj6CHRIcOokdDWF6AAMIXRWul/WLEvvNkYhK2TM73xhvw==" crossorigin="anonymous"></script>
+
+<script>
+    var editor = ace.edit("editor");
+    editor.setTheme("ace/theme/cobalt");
+    editor.session.setMode("ace/mode/python");
+    ace.require("ace/ext/language_tools");
+
+    editor.setOptions({
+        enableBasicAutocompletion: true,
+        enableSnippets: true,
+        enableLiveAutocompletion: false
+    });
+
+    function on_theme_change(){
+        let new_theme = document.getElementById("theme-list").value;
+        editor.setTheme(new_theme);
+    }
+
+    function on_language_change(){
+        let new_lanuage = document.getElementById("language-mode").value;
+        console.log(new_lanuage);
+        editor.session.setMode(new_lanuage);
+    }
+</script>
+</body>
+</html>
